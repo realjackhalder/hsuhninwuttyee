@@ -1,28 +1,38 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { getAnniversaryDays } from "../utils/anniversary";
 
-const loveLetterLines = [
-  "Dear Nya Nya,",
-  "",
-  "I still remember the day everything changed: April 14, 2025.",
-  "That was the day you walked into my world and made it bloom.",
-  "",
-  "554 days have passed since then,",
-  "and not a single second goes by where I take you for granted.",
-  "",
-  "I love the sound of your laugh.",
-  "I love the way your eyes light up when you smile.",
-  "I love how safe and complete you make me feel.",
-  "",
-  "No matter where life takes us,",
-  "my heart will always find its home in yours.",
-  "",
-  "Happy Anniversary, my beautiful Nya Nya.",
-  "I love you today, tomorrow, and for all of our days.",
-  "",
-  "— Yours always and forever ❤️"
-];
+interface TypewriterLetterProps {
+  days?: number;
+}
 
-export function TypewriterLetter() {
+export function TypewriterLetter({ days: propDays }: TypewriterLetterProps) {
+  const days = propDays ?? getAnniversaryDays();
+
+  const loveLetterLines = useMemo(
+    () => [
+      "Dear Nya Nya,",
+      "",
+      "I still remember the day everything changed: April 14, 2025.",
+      "That was the day you walked into my world and made it bloom.",
+      "",
+      `${days} days have passed since then,`,
+      "and not a single second goes by where I take you for granted.",
+      "",
+      "I love the sound of your laugh.",
+      "I love the way your eyes light up when you smile.",
+      "I love how safe and complete you make me feel.",
+      "",
+      "No matter where life takes us,",
+      "my heart will always find its home in yours.",
+      "",
+      "Happy Anniversary, my beautiful Nya Nya.",
+      "I love you today, tomorrow, and for all of our days.",
+      "",
+      "— Yours always and forever ❤️",
+    ],
+    [days]
+  );
+
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
@@ -68,7 +78,7 @@ export function TypewriterLetter() {
       }, 250);
       return () => clearTimeout(timeout);
     }
-  }, [currentLineIndex, currentCharIndex]);
+  }, [currentLineIndex, currentCharIndex, loveLetterLines]);
 
   const restartTyping = () => {
     setDisplayedLines([]);

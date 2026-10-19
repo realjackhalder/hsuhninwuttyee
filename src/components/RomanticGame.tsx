@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { triggerConfetti } from "./ConfettiCanvas";
+import { getAnniversaryDays } from "../utils/anniversary";
 
 // Web Audio sound synthesizer for cute game sounds
 function playSound(type: "catch" | "match" | "flip" | "win" | "miss") {
@@ -79,16 +80,20 @@ const LOVE_ITEMS = [
   { icon: "🧸", points: 20, label: "Warm Cuddle!" },
 ];
 
-const COMPLIMENTS = [
+const getRomanticCompliments = (days: number) => [
   "Nya Nya is the cutest! 💖",
   "Jack loves Nya Nya to the moon & back! 🌙",
-  "554 days and falling for you more! 🌸",
+  `${days} days and falling for you more! 🌸`,
   "My favorite smile in the whole universe! ✨",
   "You make my heart skip a beat! 💓",
   "Forever yours, Nya Nya! 💍",
 ];
 
-export function CatchHeartGame() {
+export function CatchHeartGame({ days: propDays }: { days?: number }) {
+  const days = propDays ?? getAnniversaryDays();
+  const compliments = useMemo(() => getRomanticCompliments(days), [days]);
+  const complimentsRef = useRef(compliments);
+  complimentsRef.current = compliments;
   const [isPlaying, setIsPlaying] = useState(false);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(() => {
@@ -203,7 +208,8 @@ export function CatchHeartGame() {
           setScore((s) => s + item.points);
           // Show romantic compliment randomly
           if (Math.random() > 0.45) {
-            const compliment = COMPLIMENTS[Math.floor(Math.random() * COMPLIMENTS.length)];
+            const list = complimentsRef.current;
+            const compliment = list[Math.floor(Math.random() * list.length)];
             setFloatingMessage(compliment);
           }
           continue; // Item caught, do not keep
@@ -516,7 +522,7 @@ export function PhotoMemoryGame({ onWin }: { onWin?: () => void }) {
 // ─────────────────────────────────────────────────────────────
 // Combined Romantic Game Center Component
 // ─────────────────────────────────────────────────────────────
-export function RomanticGameCenter({ onCelebrate }: { onCelebrate?: () => void }) {
+export function RomanticGameCenter({ onCelebrate, days }: { onCelebrate?: () => void; days?: number }) {
   const [activeGame, setActiveGame] = useState<"catch" | "memory">("catch");
 
   return (
@@ -537,7 +543,7 @@ export function RomanticGameCenter({ onCelebrate }: { onCelebrate?: () => void }
         </button>
       </div>
 
-      {activeGame === "catch" && <CatchHeartGame />}
+      {activeGame === "catch" && <CatchHeartGame days={days} />}
       {activeGame === "memory" && <PhotoMemoryGame onWin={onCelebrate} />}
     </div>
   );

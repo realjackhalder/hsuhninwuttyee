@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { getAnniversaryDays } from "../utils/anniversary";
 
 
 interface Petal {
@@ -24,7 +25,8 @@ interface LeafHeart {
   scale: number;
 }
 
-export function LoveTreeCanvas() {
+export function LoveTreeCanvas({ days: propDays }: { days?: number } = {}) {
+  const days = propDays ?? getAnniversaryDays();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export function LoveTreeCanvas() {
     const heartCenterY = height * 0.38;
     const heartScale = Math.min(width, height) * 0.024;
 
-    const totalLeaves = 550; // Inspired by 554 days!
+    const totalLeaves = Math.min(800, Math.max(350, days)); // Blossoming with every day together!
     for (let i = 0; i < totalLeaves; i++) {
       // Rejection sampling inside the heart
       const t = Math.random() * Math.PI * 2;
@@ -335,7 +337,7 @@ export function LoveTreeCanvas() {
       window.removeEventListener("resize", handleResize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [days]);
 
   return (
     <div className="love-tree-wrapper">

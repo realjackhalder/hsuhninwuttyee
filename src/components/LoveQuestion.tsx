@@ -1,10 +1,13 @@
 import { useState, useRef } from "react";
+import { getAnniversaryDays } from "../utils/anniversary";
 
 interface LoveQuestionProps {
   onYesCelebrate?: () => void;
+  days?: number;
 }
 
-export function LoveQuestion({ onYesCelebrate }: LoveQuestionProps) {
+export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionProps) {
+  const days = propDays ?? getAnniversaryDays();
   const [noStep, setNoStep] = useState(0);
   const [noPos, setNoPos] = useState<{ top: string; left: string } | null>(null);
   const [hasSaidYes, setHasSaidYes] = useState(false);
@@ -15,7 +18,7 @@ export function LoveQuestion({ onYesCelebrate }: LoveQuestionProps) {
     "No",
     "Please think again! 🥺",
     "Are you really sure, Nya Nya? 😣",
-    "Think about our 554 days together! 💔",
+    `Think about our ${days} days together! 💔`,
     "Don't break my heart! 😭",
     "You can't catch me anyway! 🏃‍♀️💨",
     "Just click YES already! 🥰",
@@ -25,7 +28,7 @@ export function LoveQuestion({ onYesCelebrate }: LoveQuestionProps) {
     "You mean the whole world to me 💕",
     "Don't be in such a rush to say no... 🥺",
     "Think about all the sweet memories we shared! ✨",
-    "554 days of love cannot end like this! 😭",
+    `${days} days of love cannot end like this! 😭`,
     "I'm going to cry a river if you keep saying no! 🌊",
     "See? Even the button knows you belong with me! 💘",
   ];
@@ -161,7 +164,7 @@ export function LoveQuestion({ onYesCelebrate }: LoveQuestionProps) {
           </h2>
 
           <p className="celebration-text">
-            Happy 554 Days Anniversary, <strong>Nya Nya</strong>!
+            Happy {days} Days Anniversary, <strong>Nya Nya</strong>!
             <br />
             You are my one and only, today and forever. 🥂✨
           </p>

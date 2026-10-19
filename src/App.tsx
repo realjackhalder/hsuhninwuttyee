@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LoveTreeCanvas } from "./components/LoveTreeCanvas";
 import { AnniversaryClock } from "./components/AnniversaryClock";
 import { TypewriterLetter } from "./components/TypewriterLetter";
@@ -8,12 +8,19 @@ import { RomanticGameCenter } from "./components/RomanticGame";
 import { MediaGallery } from "./components/MediaGallery";
 import { MusicPlayer } from "./components/MusicPlayer";
 import { ConfettiCanvas, triggerConfetti } from "./components/ConfettiCanvas";
+import { useAnniversaryTime } from "./utils/anniversary";
 import "./App.css";
 
 type TabKey = "tree" | "gallery" | "game" | "question" | "escape";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabKey>("tree");
+  const timeElapsed = useAnniversaryTime();
+  const { days } = timeElapsed;
+
+  useEffect(() => {
+    document.title = `Happy Day ${days} Anniversary, Nya Nya! 💖`;
+  }, [days]);
 
   const handleCelebrate = () => {
     triggerConfetti();
@@ -76,30 +83,30 @@ export default function App() {
       <main className="content-container">
         {/* Hero Banner */}
         <section className="hero-banner">
-          <span className="hero-tag">HAPPY 554 DAYS ANNIVERSARY</span>
+          <span className="hero-tag">HAPPY {days} DAYS ANNIVERSARY</span>
           <h1 className="hero-heading">
             For My Dearest <span className="gradient-name">Nya Nya</span>
           </h1>
-          <p className="hero-dates">April 14, 2025 — Today & Forever</p>
+          <p className="hero-dates">April 14, 2025 — Today (Day {days}) & Forever</p>
         </section>
 
         {/* ── TAB 1: LOVE TREE & ANNIVERSARY CLOCK & LETTER ───────── */}
         {activeTab === "tree" && (
           <div className="tab-pane fade-in">
             {/* Live Anniversary Counter */}
-            <AnniversaryClock />
+            <AnniversaryClock timeElapsed={timeElapsed} />
 
             {/* Split layout: Canvas Love Tree & Romantic Typewriter Letter */}
             <div className="tree-and-letter-grid">
               <div className="tree-column">
-                <LoveTreeCanvas />
+                <LoveTreeCanvas days={days} />
               </div>
 
               <div className="letter-column">
                 <div className="letter-header-badge">
                   <span>💌 A Love Letter For You</span>
                 </div>
-                <TypewriterLetter />
+                <TypewriterLetter days={days} />
               </div>
             </div>
 
@@ -130,8 +137,8 @@ export default function App() {
 
                 <div className="milestone-card highlight-card">
                   <div className="milestone-icon">💖</div>
-                  <div className="milestone-date">Day 554 (Today!)</div>
-                  <div className="milestone-name">554 Days Strong</div>
+                  <div className="milestone-date">Day {days} (Today!)</div>
+                  <div className="milestone-name">{days} Days Strong</div>
                   <p>More in love with you today than yesterday, and even more tomorrow.</p>
                 </div>
 
@@ -149,14 +156,14 @@ export default function App() {
         {/* ── TAB 2: SWEET MEMORIES & VIDEOS (from Pics/) ──────── */}
         {activeTab === "gallery" && (
           <div className="tab-pane fade-in">
-            <MediaGallery />
+            <MediaGallery days={days} />
           </div>
         )}
 
         {/* ── TAB 3: PLAY GAMES (Arcade & Photo Memory Match) ──── */}
         {activeTab === "game" && (
           <div className="tab-pane fade-in">
-            <RomanticGameCenter onCelebrate={handleCelebrate} />
+            <RomanticGameCenter days={days} onCelebrate={handleCelebrate} />
           </div>
         )}
 
@@ -164,7 +171,7 @@ export default function App() {
         {activeTab === "question" && (
           <div className="tab-pane fade-in">
             <div className="question-wrapper">
-              <LoveQuestion onYesCelebrate={handleCelebrate} />
+              <LoveQuestion days={days} onYesCelebrate={handleCelebrate} />
             </div>
           </div>
         )}
@@ -208,7 +215,7 @@ export default function App() {
           Dedicated to <strong>Nya Nya</strong> with all my love ❤️
         </p>
         <p className="footer-small">
-          Celebrating 554 Days of Love 💕
+          Celebrating {days} Days of Love 💕
         </p>
       </footer>
     </div>

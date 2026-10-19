@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { getAnniversaryDays } from "../utils/anniversary";
 
 interface MediaItem {
   id: string;
@@ -53,12 +54,12 @@ const ALL_PHOTOS: string[] = [
   "att.NXqOjTdxf795cBqEMHiWOGd-HKxBDRi-Wlz0W-flMGM.jpg",
 ];
 
-const ROMANTIC_CAPTIONS = [
+const getRomanticCaptions = (days: number) => [
   "My favorite smile in the world 🌸",
   "With you, every day feels like magic ✨",
   "The prettiest girl in the universe 💕",
   "Unforgettable moments together 🥂",
-  "Holding hands through 554 beautiful days 💖",
+  `Holding hands through ${days} beautiful days 💖`,
   "My safe haven, my peace, my heart 🌹",
   "Forever grateful that you walked into my life 💍",
   "Sweet giggles and endless love 🍓",
@@ -66,7 +67,9 @@ const ROMANTIC_CAPTIONS = [
   "Every second with you is a treasure 💌",
 ];
 
-export function MediaGallery() {
+export function MediaGallery({ days: propDays }: { days?: number }) {
+  const days = propDays ?? getAnniversaryDays();
+  const romanticCaptions = useMemo(() => getRomanticCaptions(days), [days]);
   const [filter, setFilter] = useState<"all" | "photos" | "videos">("all");
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [likes, setLikes] = useState<Record<string, number>>({});
@@ -93,7 +96,7 @@ export function MediaGallery() {
     type: "photo",
     src: `/pics/${filename}`,
     title: `Nya Nya & Jack • Memory #${i + 1}`,
-    subtitle: ROMANTIC_CAPTIONS[i % ROMANTIC_CAPTIONS.length],
+    subtitle: romanticCaptions[i % romanticCaptions.length],
   }));
 
   const allMedia: MediaItem[] = [...videos, ...photoItems];
@@ -144,7 +147,7 @@ export function MediaGallery() {
     <div className="media-gallery-section">
       <div className="gallery-header">
         <span className="gallery-badge">📸 OUR PRECIOUS MEMORIES</span>
-        <h2 className="gallery-title">554 Days of Pure Happiness</h2>
+        <h2 className="gallery-title">{days} Days of Pure Happiness</h2>
         <p className="gallery-subtitle">
           Every photo and video tells the story of our love. Dedicated to my dearest Nya Nya.
         </p>

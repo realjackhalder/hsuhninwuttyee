@@ -1,43 +1,12 @@
-import { useEffect, useState } from "react";
+import { useAnniversaryTime, type AnniversaryTime } from "../utils/anniversary";
 
-export function AnniversaryClock() {
-  // Anniversary starting point: 14 April 2025
-  const startDate = new Date(2025, 3, 14, 0, 0, 0); // Month is 0-indexed: 3 = April
+interface AnniversaryClockProps {
+  timeElapsed?: AnniversaryTime;
+}
 
-  const [timeElapsed, setTimeElapsed] = useState({
-    days: 554,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-  });
-
-  useEffect(() => {
-    const calculateTime = () => {
-      const now = new Date();
-      const diffMs = Math.max(0, now.getTime() - startDate.getTime());
-
-      const totalSeconds = Math.floor(diffMs / 1000);
-      const totalMinutes = Math.floor(totalSeconds / 60);
-      const totalHours = Math.floor(totalMinutes / 60);
-      const days = Math.floor(totalHours / 24);
-
-      const hours = totalHours % 24;
-      const minutes = totalMinutes % 60;
-      const seconds = totalSeconds % 60;
-
-      // Note: If today is around the 553.5-554 day mark, we ensure at least 554 or live days
-      setTimeElapsed({
-        days: Math.max(554, days),
-        hours,
-        minutes,
-        seconds,
-      });
-    };
-
-    calculateTime();
-    const interval = setInterval(calculateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
+export function AnniversaryClock({ timeElapsed: propTime }: AnniversaryClockProps) {
+  const liveTime = useAnniversaryTime();
+  const timeElapsed = propTime ?? liveTime;
 
   return (
     <div className="anniversary-clock-card">
@@ -85,7 +54,7 @@ export function AnniversaryClock() {
       </div>
 
       <div className="clock-footer-note">
-        <span>✨ 554 days of holding your hand, and forever to go ✨</span>
+        <span>✨ {timeElapsed.days} days of holding your hand, and forever to go ✨</span>
       </div>
     </div>
   );
