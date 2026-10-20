@@ -19,7 +19,7 @@ function playSound(type: "catch" | "match" | "flip" | "win" | "miss") {
       gain.gain.setValueAtTime(0.2, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
       osc.start(now);
-      osc.stop(now + 0.15);
+      osc.stop(now + 0.16);
     } else if (type === "match") {
       osc.type = "triangle";
       osc.frequency.setValueAtTime(440, now);
@@ -28,42 +28,50 @@ function playSound(type: "catch" | "match" | "flip" | "win" | "miss") {
       gain.gain.setValueAtTime(0.25, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
       osc.start(now);
-      osc.stop(now + 0.3);
+      osc.stop(now + 0.32);
     } else if (type === "flip") {
       osc.type = "sine";
       osc.frequency.setValueAtTime(350, now);
-      osc.frequency.exponentialRampToValueAtTime(450, now + 0.05);
-      gain.gain.setValueAtTime(0.1, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+      osc.frequency.exponentialRampToValueAtTime(450, now + 0.06);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
       osc.start(now);
-      osc.stop(now + 0.05);
+      osc.stop(now + 0.08);
     } else if (type === "win") {
+      // Arpeggio
       const notes = [523.25, 659.25, 783.99, 1046.5];
-      notes.forEach((freq, i) => {
-        const noteOsc = ctx.createOscillator();
-        const noteGain = ctx.createGain();
-        noteOsc.connect(noteGain);
-        noteGain.connect(ctx.destination);
-        noteOsc.type = "sine";
-        noteOsc.frequency.setValueAtTime(freq, now + i * 0.1);
-        noteGain.gain.setValueAtTime(0.2, now + i * 0.1);
-        noteGain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.25);
-        noteOsc.start(now + i * 0.1);
-        noteOsc.stop(now + i * 0.1 + 0.25);
+      notes.forEach((freq, idx) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.frequency.setValueAtTime(freq, now + idx * 0.1);
+        g.gain.setValueAtTime(0.2, now + idx * 0.1);
+        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.1 + 0.25);
+        o.start(now + idx * 0.1);
+        o.stop(now + idx * 0.1 + 0.26);
       });
+    } else if (type === "miss") {
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(260, now);
+      osc.frequency.exponentialRampToValueAtTime(180, now + 0.2);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+      osc.start(now);
+      osc.stop(now + 0.25);
     }
   } catch {
-    // Ignore audio context errors if browser blocks autoplay
+    // Ignore audio failures if browser blocks autoplay
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// GAME 1: Catch Falling Hearts & Gifts (Touch & Keyboard friendly)
+// GAME 1: Catch My Heart Game
 // ─────────────────────────────────────────────────────────────
 interface FallingItem {
   id: number;
-  x: number; // percentage 0-100
-  y: number; // percentage 0-100
+  x: number; // percentage (0 - 100)
+  y: number; // percentage (0 - 100)
   speed: number;
   icon: string;
   points: number;
@@ -94,6 +102,7 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
   const compliments = useMemo(() => getRomanticCompliments(days), [days]);
   const complimentsRef = useRef(compliments);
   complimentsRef.current = compliments;
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(() => {
@@ -101,36 +110,70 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
   });
   const [timeLeft, setTimeLeft] = useState(30);
   const [basketX, setBasketX] = useState(50); // percentage
+  const [fallingItems, setFallingItems] = useState<FallingItem[]>([]);
   const [floatingMessage, setFloatingMessage] = useState<string | null>(null);
   const [gameOver, setGameOver] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const basketXRef = useRef(50);
   const itemsRef = useRef<FallingItem[]>([]);
-  const [, setTick] = useState(0);
   const animFrameRef = useRef<number | null>(null);
   const lastSpawnRef = useRef<number>(0);
+  const nextIdRef = useRef<number>(1);
+
+  // Synchronize basket position smoothly
+  const updateBasketPosition = useCallback((clientX: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const percent = ((clientX - rect.left) / rect.width) * 100;
+    const clamped = Math.max(8, Math.min(92, percent));
+    basketXRef.current = clamped;
+    setBasketX(clamped);
+  }, []);
+
+  const moveBasketStep = useCallback((deltaPercent: number) => {
+    const nextVal = Math.max(8, Math.min(92, basketXRef.current + deltaPercent));
+    basketXRef.current = nextVal;
+    setBasketX(nextVal);
+  }, []);
 
   // Keyboard controls
   useEffect(() => {
     if (!isPlaying) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft" || e.key === "a") {
-        setBasketX((prev) => Math.max(8, prev - 7));
+        moveBasketStep(-7);
       } else if (e.key === "ArrowRight" || e.key === "d") {
-        setBasketX((prev) => Math.min(92, prev + 7));
+        moveBasketStep(7);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isPlaying]);
+  }, [isPlaying, moveBasketStep]);
 
-  // Touch / pointer drag controls (for iPhone & iPad)
+  // Touch / pointer drag controls (optimized for fingers on mobile)
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPlaying) return;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    updateBasketPosition(e.clientX);
+  };
+
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isPlaying || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const clientX = e.clientX;
-    const percent = ((clientX - rect.left) / rect.width) * 100;
-    setBasketX(Math.max(8, Math.min(92, percent)));
+    if (!isPlaying) return;
+    // Only update if pointer is down/dragging or hovering with mouse
+    if (e.buttons > 0 || e.pointerType === "mouse") {
+      updateBasketPosition(e.clientX);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isPlaying || e.touches.length === 0) return;
+    updateBasketPosition(e.touches[0].clientX);
   };
 
   // Start game
@@ -139,6 +182,10 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
     setTimeLeft(30);
     setGameOver(false);
     itemsRef.current = [];
+    setFallingItems([]);
+    lastSpawnRef.current = 0;
+    basketXRef.current = 50;
+    setBasketX(50);
     setIsPlaying(true);
     setFloatingMessage("Catch as many hearts as you can, Nya Nya! 💖");
   };
@@ -170,40 +217,42 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
     }
   }, [score, highScore]);
 
-  // Game loop for falling items
+  // Game loop for falling items — runs smoothly on animation frames independent of basket touches
   useEffect(() => {
     if (!isPlaying) {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      setFallingItems([]);
       return;
     }
 
-    let nextId = 1;
     const loop = (timestamp: number) => {
-      // Spawn new item every 400-600ms
-      if (timestamp - lastSpawnRef.current > 450) {
+      // Spawn new item every ~450ms
+      if (timestamp - lastSpawnRef.current > 420) {
         lastSpawnRef.current = timestamp;
         const randomItem = LOVE_ITEMS[Math.floor(Math.random() * LOVE_ITEMS.length)];
         itemsRef.current.push({
-          id: nextId++,
+          id: nextIdRef.current++,
           x: 10 + Math.random() * 80,
           y: -5,
-          speed: 0.65 + Math.random() * 0.45,
+          speed: 0.75 + Math.random() * 0.45,
           icon: randomItem.icon,
           points: randomItem.points,
           label: randomItem.label,
         });
       }
 
-      // Move items down
+      // Read current basket position from ref (NEVER freezes on finger moves)
+      const currentBasket = basketXRef.current;
+      const basketLeft = currentBasket - 12;
+      const basketRight = currentBasket + 12;
+
       const remaining: FallingItem[] = [];
-      const basketLeft = basketX - 12;
-      const basketRight = basketX + 12;
 
       for (const item of itemsRef.current) {
         item.y += item.speed;
 
-        // Catch collision near basket (y between 78 and 88%)
-        if (item.y >= 78 && item.y <= 90 && item.x >= basketLeft && item.x <= basketRight) {
+        // Catch collision near basket (y between 78% and 92%)
+        if (item.y >= 78 && item.y <= 92 && item.x >= basketLeft && item.x <= basketRight) {
           playSound("catch");
           setScore((s) => s + item.points);
           // Show romantic compliment randomly
@@ -212,16 +261,18 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
             const compliment = list[Math.floor(Math.random() * list.length)];
             setFloatingMessage(compliment);
           }
-          continue; // Item caught, do not keep
+          continue; // Item caught, remove immediately
         }
 
+        // Only keep if still on screen (strictly cleaned up so no left-drop ghosts)
         if (item.y <= 100) {
           remaining.push(item);
         }
       }
 
       itemsRef.current = remaining;
-      setTick((t) => (t + 1) % 1000);
+      setFallingItems([...remaining]);
+
       animFrameRef.current = requestAnimationFrame(loop);
     };
 
@@ -229,7 +280,7 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [isPlaying, basketX]);
+  }, [isPlaying]);
 
   return (
     <div className="game-card">
@@ -251,7 +302,7 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
           <span className="stat-label">Time</span>
           <span className="stat-val">{timeLeft}s</span>
         </div>
-        <div className="stat-pill high-pill">
+        <div className="stat-pill highscore-pill">
           <span className="stat-label">Best</span>
           <span className="stat-val">{highScore}</span>
         </div>
@@ -261,12 +312,18 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
         <div className="floating-love-message">{floatingMessage}</div>
       )}
 
-      {/* Game Play Area */}
+      {/* Game Play Area with responsive finger drag support */}
       <div
         ref={containerRef}
         className="game-canvas-area"
+        onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerDown={handlePointerMove}
+        onTouchStart={(e) => {
+          if (isPlaying && e.touches.length > 0) {
+            updateBasketPosition(e.touches[0].clientX);
+          }
+        }}
+        onTouchMove={handleTouchMove}
         style={{ touchAction: "none" }}
       >
         {!isPlaying && !gameOver && (
@@ -277,7 +334,7 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
             <button className="play-start-btn" onClick={startGame}>
               Start Catching Love 💕
             </button>
-            <p className="tip-note">💡 On mobile / iPad, drag your finger across the screen!</p>
+            <p className="tip-note">💡 On mobile, drag your finger across or use the touch buttons below!</p>
           </div>
         )}
 
@@ -297,9 +354,9 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
           </div>
         )}
 
-        {/* Falling items */}
+        {/* Falling items — each with guaranteed unique key so no freezing or left-drop ghosts */}
         {isPlaying &&
-          itemsRef.current.map((item) => (
+          fallingItems.map((item) => (
             <div
               key={item.id}
               className="falling-game-item"
@@ -317,6 +374,7 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
           className="game-basket"
           style={{
             left: `${basketX}%`,
+            transition: "none", // Instant response to finger
           }}
         >
           <div className="basket-glow" />
@@ -324,12 +382,46 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
           <span className="basket-tag">Nya Nya</span>
         </div>
       </div>
+
+      {/* On-screen touch control buttons for easy mobile finger navigation */}
+      {isPlaying && (
+        <div className="mobile-touch-controls" aria-label="Mobile Controls">
+          <button
+            type="button"
+            className="touch-ctrl-btn"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              moveBasketStep(-10);
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              moveBasketStep(-10);
+            }}
+          >
+            ◀ Slide Left
+          </button>
+          <button
+            type="button"
+            className="touch-ctrl-btn"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              moveBasketStep(10);
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              moveBasketStep(10);
+            }}
+          >
+            Slide Right ▶
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// GAME 2: Couple Photo Memory Match Game (Using real pics!)
+// GAME 2: Couple Photo Memory Match Game (With 20 Move Limit!)
 // ─────────────────────────────────────────────────────────────
 interface CardItem {
   id: number;
@@ -349,6 +441,8 @@ const MEMORY_PHOTOS = [
   "/pics/IMG_0906.jpeg",
 ];
 
+const MAX_MEMORY_MOVES = 20;
+
 export function PhotoMemoryGame({ onWin }: { onWin?: () => void }) {
   const [cards, setCards] = useState<CardItem[]>([]);
   const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
@@ -356,6 +450,7 @@ export function PhotoMemoryGame({ onWin }: { onWin?: () => void }) {
   const [matchedPairs, setMatchedPairs] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [hasWon, setHasWon] = useState(false);
+  const [hasLost, setHasLost] = useState(false);
 
   // Initialize cards
   const initGame = useCallback(() => {
@@ -390,6 +485,7 @@ export function PhotoMemoryGame({ onWin }: { onWin?: () => void }) {
     setMatchedPairs(0);
     setIsLocked(false);
     setHasWon(false);
+    setHasLost(false);
   }, []);
 
   useEffect(() => {
@@ -397,21 +493,21 @@ export function PhotoMemoryGame({ onWin }: { onWin?: () => void }) {
   }, [initGame]);
 
   const handleCardClick = (index: number) => {
-    if (isLocked) return;
+    if (isLocked || hasWon || hasLost || moves >= MAX_MEMORY_MOVES) return;
     const card = cards[index];
     if (card.isFlipped || card.isMatched) return;
 
     playSound("flip");
 
-    const newCards = [...cards];
-    newCards[index].isFlipped = true;
+    const newCards = cards.map((c, i) => (i === index ? { ...c, isFlipped: true } : c));
     const newFlipped = [...flippedIndices, index];
 
     setCards(newCards);
     setFlippedIndices(newFlipped);
 
     if (newFlipped.length === 2) {
-      setMoves((m) => m + 1);
+      const nextMoves = moves + 1;
+      setMoves(nextMoves);
       setIsLocked(true);
 
       const [firstIdx, secondIdx] = newFlipped;
@@ -421,9 +517,10 @@ export function PhotoMemoryGame({ onWin }: { onWin?: () => void }) {
       if (firstCard.pairId === secondCard.pairId) {
         // Matched!
         playSound("match");
-        newCards[firstIdx].isMatched = true;
-        newCards[secondIdx].isMatched = true;
-        setCards([...newCards]);
+        const matchedCards = newCards.map((c, i) =>
+          i === firstIdx || i === secondIdx ? { ...c, isMatched: true } : c
+        );
+        setCards(matchedCards);
         setFlippedIndices([]);
         setIsLocked(false);
         const newMatched = matchedPairs + 1;
@@ -434,19 +531,32 @@ export function PhotoMemoryGame({ onWin }: { onWin?: () => void }) {
           playSound("win");
           triggerConfetti();
           onWin?.();
+        } else if (nextMoves >= MAX_MEMORY_MOVES) {
+          // Out of moves!
+          setHasLost(true);
+          playSound("miss");
         }
       } else {
-        // Not matched, flip back after 900ms
+        // Not matched, flip back after 850ms
         setTimeout(() => {
-          newCards[firstIdx].isFlipped = false;
-          newCards[secondIdx].isFlipped = false;
-          setCards([...newCards]);
+          setCards((prev) =>
+            prev.map((c, i) =>
+              i === firstIdx || i === secondIdx ? { ...c, isFlipped: false } : c
+            )
+          );
           setFlippedIndices([]);
           setIsLocked(false);
-        }, 900);
+          if (nextMoves >= MAX_MEMORY_MOVES) {
+            setHasLost(true);
+            playSound("miss");
+          }
+        }, 850);
       }
     }
   };
+
+  const movesLeft = Math.max(0, MAX_MEMORY_MOVES - moves);
+  const isMoveWarning = moves >= 15;
 
   return (
     <div className="game-card">
@@ -454,14 +564,20 @@ export function PhotoMemoryGame({ onWin }: { onWin?: () => void }) {
         <span className="game-badge">🧩 SWEET MEMORY MATCH</span>
         <h2 className="game-title">Our Romantic Moments 💕</h2>
         <p className="game-subtitle">
-          Find matching photo pairs of our sweetest memories together!
+          Find matching photo pairs of our sweetest memories! You have a limit of 20 moves.
         </p>
       </div>
 
       <div className="game-stats-bar">
-        <div className="stat-pill">
+        <div className={`stat-pill ${isMoveWarning ? "stat-warning-pill" : ""}`}>
           <span className="stat-label">Moves</span>
-          <span className="stat-val">{moves}</span>
+          <span className="stat-val">
+            {moves} / {MAX_MEMORY_MOVES}
+          </span>
+        </div>
+        <div className="stat-pill">
+          <span className="stat-label">Moves Left</span>
+          <span className="stat-val">{movesLeft}</span>
         </div>
         <div className="stat-pill highlight-pill">
           <span className="stat-label">Pairs Matched</span>
@@ -485,6 +601,17 @@ export function PhotoMemoryGame({ onWin }: { onWin?: () => void }) {
         </div>
       )}
 
+      {hasLost && !hasWon && (
+        <div className="memory-lose-banner">
+          <div className="lose-icon">🥺💔</div>
+          <h3>Out of Moves! ({MAX_MEMORY_MOVES}/{MAX_MEMORY_MOVES})</h3>
+          <p>Don't be sad, my love! Every sweet moment with you is still safe in my heart. Give it another try!</p>
+          <button className="play-start-btn" onClick={initGame}>
+            Try Again 🔄
+          </button>
+        </div>
+      )}
+
       {/* Memory Grid */}
       <div className="memory-cards-grid">
         {cards.map((card, idx) => (
@@ -494,6 +621,13 @@ export function PhotoMemoryGame({ onWin }: { onWin?: () => void }) {
               card.isMatched ? "matched" : ""
             }`}
             onClick={() => handleCardClick(idx)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                handleCardClick(idx);
+              }
+            }}
           >
             <div className="memory-card-inner">
               <div className="memory-card-front">
@@ -539,7 +673,7 @@ export function RomanticGameCenter({ onCelebrate, days }: { onCelebrate?: () => 
           className={`game-mode-pill ${activeGame === "memory" ? "active" : ""}`}
           onClick={() => setActiveGame("memory")}
         >
-          <span>🧩</span> Photo Memory Match
+          <span>🧩</span> Photo Memory Match (20 Moves)
         </button>
       </div>
 

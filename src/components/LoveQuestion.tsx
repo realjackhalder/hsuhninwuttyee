@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { getAnniversaryDays } from "../utils/anniversary";
 
 interface LoveQuestionProps {
@@ -13,7 +13,7 @@ export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionPro
   const [hasSaidYes, setHasSaidYes] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Cute English dialogues inspired by Code with Patel & adapted for Nya Nya
+  // Cute English dialogues adapted for Nya Nya
   const noMessages = [
     "No",
     "Please think again! 🥺",
@@ -21,7 +21,7 @@ export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionPro
     `Think about our ${days} days together! 💔`,
     "Don't break my heart! 😭",
     "You can't catch me anyway! 🏃‍♀️💨",
-    "Just click YES already! 🥰",
+    "Just tap YES already! 🥰",
   ];
 
   const subTexts = [
@@ -34,7 +34,6 @@ export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionPro
   ];
 
   const cuteGifs = [
-    // Cute Tenor sticker URLs of Peach & Goma / Mochi Cats
     "https://media.tenor.com/22885016/manja.gif", // cute begging
     "https://media.tenor.com/22050818/mochi.gif", // thinking / pleading
     "https://media.tenor.com/15195810/couple-forgive-me.gif", // crying / begging
@@ -42,20 +41,21 @@ export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionPro
     "https://media.tenor.com/253027946666209433/mochi-cat.gif", // Happy hug kiss
   ];
 
-  const handleNoInteraction = () => {
-    const nextStep = noStep + 1;
-    setNoStep(nextStep);
-
-    // From step 3 onwards, jump randomly like Code with Patel's move-random!
-    if (nextStep >= 3) {
-      const randomTop = Math.floor(Math.random() * 70 + 15);
-      const randomLeft = Math.floor(Math.random() * 70 + 15);
-      setNoPos({
-        top: `${randomTop}%`,
-        left: `${randomLeft}%`,
-      });
-    }
-  };
+  const handleNoInteraction = useCallback(() => {
+    setNoStep((prev) => {
+      const nextStep = prev + 1;
+      // Starting from step 2, jump playfully to a safe spot inside the card
+      if (nextStep >= 2) {
+        const randomTop = Math.floor(Math.random() * 50 + 25); // 25% - 75%
+        const randomLeft = Math.floor(Math.random() * 60 + 15); // 15% - 75%
+        setNoPos({
+          top: `${randomTop}%`,
+          left: `${randomLeft}%`,
+        });
+      }
+      return nextStep;
+    });
+  }, []);
 
   const handleYes = () => {
     setHasSaidYes(true);
@@ -64,11 +64,11 @@ export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionPro
     }
   };
 
-  // The Yes button grows bigger each time No is touched!
-  const yesScale = Math.min(2.2, 1 + noStep * 0.2);
+  // The Yes button grows bigger each time No is touched (capped for mobile responsiveness)
+  const yesScale = Math.min(1.75, 1 + noStep * 0.15);
 
   return (
-    <div className="love-question-card" ref={containerRef}>
+    <div className="love-question-card" ref={containerRef} style={{ minHeight: "420px" }}>
       {!hasSaidYes ? (
         <div className="question-content">
           <div className="gif-sticker-box">
@@ -77,7 +77,6 @@ export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionPro
               alt="Cute love animation"
               className="love-sticker-img"
               onError={(e) => {
-                // Fallback to high quality romantic emoji if gif takes time to load
                 (e.target as HTMLElement).style.display = "none";
               }}
             />
@@ -104,8 +103,9 @@ export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionPro
             {subTexts[Math.min(noStep, subTexts.length - 1)]}
           </p>
 
-          <div className="question-btn-row">
+          <div className="question-btn-row" style={{ position: "relative", minHeight: "80px" }}>
             <button
+              type="button"
               className="btn-yes pulse-glow"
               onClick={handleYes}
               style={{
@@ -117,8 +117,26 @@ export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionPro
             </button>
 
             <button
+              type="button"
               className="btn-no"
-              onClick={handleNoInteraction}
+              onClick={(e) => {
+                if (noStep >= 2) {
+                  e.preventDefault();
+                }
+                handleNoInteraction();
+              }}
+              onTouchStart={(e) => {
+                if (noStep >= 1) {
+                  e.preventDefault();
+                  handleNoInteraction();
+                }
+              }}
+              onPointerDown={(e) => {
+                if (e.pointerType === "touch" && noStep >= 1) {
+                  e.preventDefault();
+                  handleNoInteraction();
+                }
+              }}
               onMouseEnter={noStep >= 2 ? handleNoInteraction : undefined}
               style={
                 noPos
@@ -126,8 +144,8 @@ export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionPro
                       position: "absolute",
                       top: noPos.top,
                       left: noPos.left,
-                      transition: "all 0.2s cubic-bezier(0.2, 1, 0.3, 1)",
-                      zIndex: 10,
+                      transition: "all 0.22s cubic-bezier(0.2, 1, 0.3, 1)",
+                      zIndex: 30,
                     }
                   : undefined
               }
@@ -138,17 +156,16 @@ export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionPro
 
           {noStep >= 2 && (
             <p className="hint-pill">
-              💡 Hint: The "Yes" button is waiting for you! ✨
+              ✨ Hehe! Even your finger can't catch the No button! Just click YES! 🥰 ✨
             </p>
           )}
         </div>
       ) : (
-        <div className="celebration-content">
-          <div className="celebration-badge">💍 FOREVER & ALWAYS 💍</div>
-          <div className="gif-sticker-box">
+        <div className="celebration-content fade-in">
+          <div className="gif-sticker-box celebration-gif">
             <img
-              src={cuteGifs[4]} // Peach & Goma happy kiss
-              alt="Mochi love kiss"
+              src="https://media.tenor.com/253027946666209433/mochi-cat.gif"
+              alt="Happy cuddle kiss"
               className="love-sticker-img"
               onError={(e) => {
                 (e.target as HTMLElement).style.display = "none";
@@ -180,6 +197,7 @@ export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionPro
           </div>
 
           <button
+            type="button"
             className="btn-replay-question"
             onClick={() => {
               setHasSaidYes(false);
@@ -187,7 +205,7 @@ export function LoveQuestion({ onYesCelebrate, days: propDays }: LoveQuestionPro
               setNoPos(null);
             }}
           >
-            Play Again 💕
+            Ask Me Again 💕
           </button>
         </div>
       )}

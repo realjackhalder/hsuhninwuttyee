@@ -1317,6 +1317,76 @@
   padding: 20px;
   margin-bottom: 24px;
   box-shadow: 0 8px 24px rgba(230, 57, 86, 0.15);
+  animation: tabFadeIn 0.35s ease-out;
+}
+
+.memory-lose-banner {
+  background: #fff8f9;
+  border: 2px dashed #ff758f;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(230, 57, 86, 0.12);
+  animation: tabFadeIn 0.35s ease-out;
+}
+
+.memory-lose-banner h3 {
+  font-family: var(--heading);
+  color: #c9184a;
+  margin-bottom: 8px;
+  font-size: 20px;
+}
+
+.memory-lose-banner p {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.stat-warning-pill {
+  border-color: #ff4d6d !important;
+  color: #c9184a !important;
+  background: #ffe3e8 !important;
+  animation: pulseSecond 1.2s infinite alternate;
+}
+
+.mobile-touch-controls {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.touch-ctrl-btn {
+  background: linear-gradient(135deg, #fff0f3, #ffe3e8);
+  border: 2px solid #ffccd5;
+  color: #c9184a;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 12px 24px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(230, 57, 86, 0.12);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.touch-ctrl-btn:active {
+  transform: scale(0.95);
+  background: #ffccd5;
+}
+
+.escape-status-badge {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #ffccd5;
+  padding: 6px 18px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .reset-mini-btn {
