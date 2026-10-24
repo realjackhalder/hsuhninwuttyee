@@ -152,29 +152,71 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isPlaying, moveBasketStep]);
 
-  // Touch / pointer drag controls (optimized for fingers on mobile)
+  // ── Lovely hand / finger drag — works flawlessly on phone & iPad ──
+  const isDraggingRef = useRef(false);
+  const holdIntervalRef = useRef<number | null>(null);
+
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isPlaying) return;
+    isDraggingRef.current = true;
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
       // ignore
     }
     updateBasketPosition(e.clientX);
+    // Prevent page scroll while dragging
+    e.preventDefault();
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isPlaying) return;
-    // Only update if pointer is down/dragging or hovering with mouse
-    if (e.buttons > 0 || e.pointerType === "mouse") {
+    if (isDraggingRef.current || e.pointerType === "mouse") {
       updateBasketPosition(e.clientX);
     }
+    if (isDraggingRef.current) e.preventDefault();
+  };
+
+  const handlePointerUp = () => {
+    isDraggingRef.current = false;
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isPlaying || e.touches.length === 0) return;
+    isDraggingRef.current = true;
+    updateBasketPosition(e.touches[0].clientX);
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (!isPlaying || e.touches.length === 0) return;
+    // Prevent scrolling while playing
+    if (e.cancelable) e.preventDefault();
     updateBasketPosition(e.touches[0].clientX);
   };
+
+  const handleTouchEnd = () => {
+    isDraggingRef.current = false;
+  };
+
+  // Continuous hold for the ◀ ▶ buttons — lovely & responsive
+  const startHold = useCallback((dir: -1 | 1) => {
+    if (holdIntervalRef.current) window.clearInterval(holdIntervalRef.current);
+    moveBasketStep(dir * 10);
+    holdIntervalRef.current = window.setInterval(() => moveBasketStep(dir * 6), 55);
+    // Haptic tick for love
+    try { navigator.vibrate?.(10); } catch {}
+  }, [moveBasketStep]);
+
+  const stopHold = useCallback(() => {
+    if (holdIntervalRef.current) {
+      window.clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => { if (holdIntervalRef.current) window.clearInterval(holdIntervalRef.current); };
+  }, []);
 
   // Start game
   const startGame = () => {
@@ -312,18 +354,18 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
         <div className="floating-love-message">{floatingMessage}</div>
       )}
 
-      {/* Game Play Area with responsive finger drag support */}
+      {/* Game Play Area with lovely hand / finger drag support */}
       <div
         ref={containerRef}
         className="game-canvas-area"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onTouchStart={(e) => {
-          if (isPlaying && e.touches.length > 0) {
-            updateBasketPosition(e.touches[0].clientX);
-          }
-        }}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         style={{ touchAction: "none" }}
       >
         {!isPlaying && !gameOver && (
@@ -383,36 +425,35 @@ export function CatchHeartGame({ days: propDays }: { days?: number }) {
         </div>
       </div>
 
-      {/* On-screen touch control buttons for easy mobile finger navigation */}
+      {/* On-screen touch control buttons — hold to glide, lovely haptics */}
       {isPlaying && (
         <div className="mobile-touch-controls" aria-label="Mobile Controls">
           <button
             type="button"
             className="touch-ctrl-btn"
-            onPointerDown={(e) => {
-              e.preventDefault();
-              moveBasketStep(-10);
-            }}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              moveBasketStep(-10);
-            }}
+            aria-label="Slide basket left"
+            onPointerDown={(e) => { e.preventDefault(); startHold(-1); }}
+            onPointerUp={stopHold}
+            onPointerLeave={stopHold}
+            onPointerCancel={stopHold}
+            onTouchStart={(e) => { e.preventDefault(); startHold(-1); }}
+            onTouchEnd={stopHold}
           >
-            ◀ Slide Left
+            ◀ Hold to Slide
           </button>
+          <div className="touch-drag-hint">👆 or drag finger across game area</div>
           <button
             type="button"
             className="touch-ctrl-btn"
-            onPointerDown={(e) => {
-              e.preventDefault();
-              moveBasketStep(10);
-            }}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              moveBasketStep(10);
-            }}
+            aria-label="Slide basket right"
+            onPointerDown={(e) => { e.preventDefault(); startHold(1); }}
+            onPointerUp={stopHold}
+            onPointerLeave={stopHold}
+            onPointerCancel={stopHold}
+            onTouchStart={(e) => { e.preventDefault(); startHold(1); }}
+            onTouchEnd={stopHold}
           >
-            Slide Right ▶
+            Hold to Slide ▶
           </button>
         </div>
       )}
@@ -433,12 +474,12 @@ interface CardItem {
 }
 
 const MEMORY_PHOTOS = [
+  "/pics/IMG_NewMemory_Filmstrip_Kiss.jpeg",
+  "/pics/IMG_NewMemory_Elevator_Love.jpeg",
   "/pics/IMG_0569.jpeg",
   "/pics/IMG_0570.jpeg",
   "/pics/IMG_0606.jpeg",
-  "/pics/IMG_0618.jpeg",
   "/pics/IMG_0630.jpeg",
-  "/pics/IMG_0906.jpeg",
 ];
 
 const MAX_MEMORY_MOVES = 20;

@@ -9,7 +9,13 @@ interface MediaItem {
   subtitle: string;
 }
 
+const NEW_MEMORIES: string[] = [
+  "IMG_NewMemory_Filmstrip_Kiss.jpeg",
+  "IMG_NewMemory_Elevator_Love.jpeg",
+];
+
 const ALL_PHOTOS: string[] = [
+  ...NEW_MEMORIES,
   "IMG_0569.jpeg",
   "IMG_0570.jpeg",
   "IMG_0584.jpeg",
@@ -54,6 +60,19 @@ const ALL_PHOTOS: string[] = [
   "att.NXqOjTdxf795cBqEMHiWOGd-HKxBDRi-Wlz0W-flMGM.jpg",
 ];
 
+const NEW_MEMORY_META: Record<string, { badge: string; title: string; subtitle: string }> = {
+  "IMG_NewMemory_Filmstrip_Kiss.jpeg": {
+    badge: "✨ NEW • Filmstrip Kiss ✨",
+    title: "Our Photobytes Studio Filmstrip 💋",
+    subtitle: "Four perfect frames — your sweetest kisses, my favorite memory. I’ll treasure this forever, Nya Nya 💖",
+  },
+  "IMG_NewMemory_Elevator_Love.jpeg": {
+    badge: "🌹 NEW • Elevator Love 🌹",
+    title: "Our Cozy Elevator Story 🏩💕",
+    subtitle: "Flowers, cuddles, giggles & your red beret — every corner with you feels like home 💌",
+  },
+};
+
 const getRomanticCaptions = (days: number) => [
   "My favorite smile in the world 🌸",
   "With you, every day feels like magic ✨",
@@ -65,6 +84,8 @@ const getRomanticCaptions = (days: number) => [
   "Sweet giggles and endless love 🍓",
   "You and me against the whole world 🌟",
   "Every second with you is a treasure 💌",
+  "Your laugh is my favorite melody 🎶",
+  "Kisses sweeter than strawberries 🍓💋",
 ];
 
 export function MediaGallery({ days: propDays }: { days?: number }) {
@@ -91,13 +112,27 @@ export function MediaGallery({ days: propDays }: { days?: number }) {
     },
   ];
 
-  const photoItems: MediaItem[] = ALL_PHOTOS.map((filename, i) => ({
-    id: `p-${i}`,
-    type: "photo",
-    src: `/pics/${filename}`,
-    title: `Nya Nya & Jack • Memory #${i + 1}`,
-    subtitle: romanticCaptions[i % romanticCaptions.length],
-  }));
+  const photoItems: MediaItem[] = ALL_PHOTOS.map((filename, i) => {
+    const newMeta = NEW_MEMORY_META[filename];
+    if (newMeta) {
+      return {
+        id: `p-${i}`,
+        type: "photo" as const,
+        src: `/pics/${filename}`,
+        title: newMeta.title,
+        subtitle: newMeta.subtitle,
+        isNew: true as const,
+        badge: newMeta.badge,
+      } as MediaItem & { isNew?: boolean; badge?: string };
+    }
+    return {
+      id: `p-${i}`,
+      type: "photo" as const,
+      src: `/pics/${filename}`,
+      title: `Nya Nya & Jack • Memory #${i + 1}`,
+      subtitle: romanticCaptions[i % romanticCaptions.length],
+    } as MediaItem & { isNew?: boolean; badge?: string };
+  });
 
   const allMedia: MediaItem[] = [...videos, ...photoItems];
 
@@ -150,7 +185,34 @@ export function MediaGallery({ days: propDays }: { days?: number }) {
         <h2 className="gallery-title">{days} Days of Pure Happiness</h2>
         <p className="gallery-subtitle">
           Every photo and video tells the story of our love. Dedicated to my dearest Nya Nya.
+          <br />
+          <span className="new-memories-highlight">💖 2 New Lovely Memories Added — Our Filmstrip Kiss & Elevator Love! 💖</span>
         </p>
+
+        {/* ✨ Featured New Memories — Lovely Spotlight */}
+        <div className="new-memories-spotlight">
+          <h3 className="spotlight-heading">💘 New Lovely Memories — Just For You, Nya Nya 💘</h3>
+          <p className="spotlight-sub">Tap any photo to view full-screen 💕</p>
+          <div className="spotlight-grid">
+            {photoItems.filter((p) => (p as unknown as { isNew?: boolean }).isNew).map((photo) => (
+              <div
+                key={photo.id}
+                className="spotlight-card"
+                onClick={() => openLightbox(photo)}
+              >
+                <div className="spotlight-ribbon">{(photo as unknown as { badge?: string }).badge}</div>
+                <div className="spotlight-img-wrap">
+                  <img src={photo.src} alt={photo.title} className="spotlight-img" loading="eager" />
+                  <div className="spotlight-heart-float" aria-hidden>💖</div>
+                </div>
+                <div className="spotlight-info">
+                  <h4>{photo.title}</h4>
+                  <p>{photo.subtitle}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Filter pills */}
         <div className="gallery-filters">
@@ -206,12 +268,16 @@ export function MediaGallery({ days: propDays }: { days?: number }) {
       {/* Photo Grid / Masonry Cards */}
       {(filter === "all" || filter === "photos") && (
         <div className="photos-masonry-grid">
-          {photoItems.map((photo) => (
+          {photoItems.map((photo) => {
+            const isNew = (photo as unknown as { isNew?: boolean }).isNew;
+            const badge = (photo as unknown as { badge?: string }).badge;
+            return (
             <div
               key={photo.id}
-              className="photo-polaroid-card"
+              className={`photo-polaroid-card ${isNew ? "is-new-memory" : ""}`}
               onClick={() => openLightbox(photo)}
             >
+              {isNew && <div className="polaroid-new-badge">{badge}</div>}
               <div className="polaroid-image-wrap">
                 <img
                   src={photo.src}
@@ -232,7 +298,8 @@ export function MediaGallery({ days: propDays }: { days?: number }) {
                 <span className="caption-tag">Nya Nya 💕</span>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

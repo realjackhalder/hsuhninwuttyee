@@ -188,6 +188,7 @@ export function EscapeButton({
 
   // Victory celebration when caught
   const take = useCallback(() => {
+    try { navigator.vibrate?.([40, 30, 80]); } catch {}
     setGave(true);
     onCaught?.();
     window.clearTimeout(off.current);
@@ -195,18 +196,19 @@ export function EscapeButton({
       setGave(false);
       setDodges(0);
       armed.current = true;
-    }, 1200);
+    }, 1500);
   }, [onCaught]);
 
-  // Finger tap handling on mobile: dodge before caught, surrender once caught
-  const handleButtonInteraction = (e: React.MouseEvent<HTMLButtonElement> | React.PointerEvent<HTMLButtonElement>) => {
+  // Finger tap handling — lovely haptic, works perfectly with hand on phone & iPad
+  const handleButtonInteraction = (e: React.MouseEvent<HTMLButtonElement> | React.PointerEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
     if (!caught) {
       e.preventDefault();
       e.stopPropagation();
+      try { navigator.vibrate?.(18); } catch {}
       setDodges((d) => Math.min(patience, d + 1));
-      // Pick an evasion angle away from the center
-      const angles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
-      const angle = angles[Math.floor(Math.random() * angles.length)];
+      // Pick a lovely evasion angle
+      const angles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75, Math.PI * 0.0, Math.PI];
+      const angle = angles[Math.floor(Math.random() * angles.length)] + (Math.random() - 0.5) * 0.4;
       setManualDir({ x: Math.cos(angle), y: Math.sin(angle) });
       return;
     }
@@ -215,7 +217,7 @@ export function EscapeButton({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }}>
       <div
         className="ply ply-field esc"
         ref={field}
@@ -234,9 +236,16 @@ export function EscapeButton({
           data-fled={near.inside && !caught}
           style={{
             transform: `translate(${ox.toFixed(2)}px, ${oy.toFixed(2)}px)`,
-            touchAction: "none",
+            touchAction: "manipulation",
           }}
           onClick={handleButtonInteraction}
+          onTouchEnd={(e) => {
+            // Lovely finger handling — evades on touch, celebrates when caught
+            handleButtonInteraction(e);
+          }}
+          onTouchStart={(e) => {
+            if (!caught) e.preventDefault();
+          }}
           onPointerDown={(e) => {
             if (e.pointerType === "touch" && !caught) {
               handleButtonInteraction(e);
@@ -247,12 +256,12 @@ export function EscapeButton({
         </button>
       </div>
 
-      <div className="escape-status-badge">
+      <div className="escape-status-badge" style={{ touchAction: "manipulation" }}>
         {!caught ? (
-          <span>💨 Dodges: {dodges} / {patience} — Keep trying to catch me!</span>
+          <span>💨 Dodges: {dodges} / {patience} — Tap with your finger to catch my heart! 💘</span>
         ) : (
           <span style={{ color: "var(--accent)", fontWeight: "bold" }}>
-            💖 Caught! Tap the button to celebrate! 🎉
+            💖 You caught me! Tap once more to celebrate! 🎉💋
           </span>
         )}
       </div>
